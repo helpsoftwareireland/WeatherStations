@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/ApiProcess.cs" Link="ApiProcess.cs" />
+    <ProjectReference Include="../../src/WeatherAggregation.Client/WeatherAggregation.Client.csproj" />
+    <ProjectReference Include="../../src/WeatherAggregation.Api/WeatherAggregation.Api.csproj" />
+  </ItemGroup>
+</Project>

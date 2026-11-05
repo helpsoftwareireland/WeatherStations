@@ -1,0 +1,31 @@
+name: Build and test
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore Broadridge.sln
+      - run: dotnet build Broadridge.sln --configuration Release --no-restore
+      - run: dotnet test Broadridge.sln --configuration Release --no-build --logger trx --results-directory TestResults
+      - name: Local launcher smoke test
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./Start-Local.ps1 -Port 5089 -SmokeTest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults/*.trx

@@ -1,0 +1,85 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Weather Station Aggregation API",
+    "version": "1.0.0",
+    "description": "Stream UTF-8 JSON Lines to aggregate temperatures. Use Authorize to supply X-Api-Key for Try it out. Documentation itself requires X-Api-Key or browser Basic login (username apikey, password your API key). Credentials are never embedded in this document. Use HTTPS outside local development."
+  },
+  "security": [{"ApiKey": []}],
+  "paths": {
+    "/measurements/aggregate": {
+      "post": {
+        "operationId": "aggregateMeasurements",
+        "summary": "Aggregate a JSONL upload",
+        "description": "Each line is an object with exactly stationName (1–100 decoded UTF-8 bytes) and temperature (-99.9 to 99.9, exactly one fractional digit, no exponent). Matching is ordinal-ignore-case. Output names use invariant word capitalization and preserve punctuation. Results are sorted using ordinal-ignore-case with an ordinal tie-breaker. Mean rounds once to one decimal, midpoint away from zero. Empty input returns an empty body. Stops on the first invalid line without partial successful results. LF, CRLF, and a missing final newline are accepted. The Swagger editor sends raw JSONL text; do not wrap it in quotes or an array. Use the streaming console client for large uploads.",
+        "parameters": [{"$ref": "#/components/parameters/RequestId"}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-ndjson": {
+              "schema": {"type": "string", "description": "A stream of Measurement objects, one per line; see the Measurement schema."},
+              "example": "{\"stationName\":\"Hamburg\",\"temperature\":12.0}\n{\"stationName\":\"Bulawayo\",\"temperature\":8.9}\n{\"stationName\":\"HAMBURG\",\"temperature\":34.2}\n"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One StationResult JSON object per line. Values render with one fractional digit. A broken response must be treated as a failed request.",
+            "headers": {"X-Request-Id": {"$ref": "#/components/headers/RequestId"}},
+            "content": {"application/x-ndjson": {"schema": {"type": "string"}, "example": "{\"stationName\":\"Bulawayo\",\"min\":8.9,\"mean\":8.9,\"max\":8.9}\n{\"stationName\":\"Hamburg\",\"min\":12.0,\"mean\":23.1,\"max\":34.2}\n"}}
+          },
+          "400": {"$ref": "#/components/responses/InvalidInput"},
+          "401": {"$ref": "#/components/responses/Unauthorized"},
+          "408": {"$ref": "#/components/responses/Timeout"},
+          "413": {"$ref": "#/components/responses/Limit"},
+          "415": {"$ref": "#/components/responses/MediaType"},
+          "500": {"$ref": "#/components/responses/StorageFailure"},
+          "503": {"$ref": "#/components/responses/Capacity"},
+          "507": {"$ref": "#/components/responses/StorageLimit"}
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health", "summary": "Check service availability",
+        "parameters": [{"$ref": "#/components/parameters/RequestId"}],
+        "responses": {
+          "200": {"description": "Service is running; does not guarantee free processing capacity.", "headers": {"X-Request-Id": {"$ref": "#/components/headers/RequestId"}}, "content": {"application/json": {"schema": {"type": "object", "properties": {"status": {"type": "string"}}}, "example": {"status": "ok"}}}},
+          "401": {"$ref": "#/components/responses/Unauthorized"}
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "metrics", "summary": "Read a process-local operational snapshot",
+        "description": "Counters reset on restart. Includes completed/rejected HTTP requests, active aggregations (including response streaming), accepted measurements from fully validated uploads, cumulative HTTP duration, and sampled temporary database/journal bytes. A snapshot excludes its own still-running request. Concurrent values are approximate. This JSON endpoint is not a Prometheus exporter. Native .NET instruments are available through the WeatherAggregation meter.",
+        "parameters": [{"$ref": "#/components/parameters/RequestId"}],
+        "responses": {
+          "200": {"description": "Operational metrics.", "headers": {"X-Request-Id": {"$ref": "#/components/headers/RequestId"}}, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Metrics"}}}},
+          "401": {"$ref": "#/components/responses/Unauthorized"}
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {"ApiKey": {"type": "apiKey", "in": "header", "name": "X-Api-Key"}},
+    "parameters": {"RequestId": {"name": "X-Request-Id", "in": "header", "required": false, "description": "Optional correlation ID: 1–64 ASCII letters, digits, dots, underscores, or hyphens. Invalid or multiple values are replaced with a generated ID.", "schema": {"type": "string", "maxLength": 64, "pattern": "^[A-Za-z0-9._-]+$"}}},
+    "headers": {"RequestId": {"description": "Correlation ID for this request and its logs.", "schema": {"type": "string"}}},
+    "schemas": {
+      "Measurement": {"type": "object", "additionalProperties": false, "required": ["stationName", "temperature"], "properties": {"stationName": {"type": "string", "description": "1–100 decoded UTF-8 bytes; spaces preserved.", "example": "Hamburg"}, "temperature": {"type": "number", "minimum": -99.9, "maximum": 99.9, "multipleOf": 0.1, "description": "Lexically exactly one fractional digit, no exponent.", "example": 12.0}}},
+      "StationResult": {"type": "object", "required": ["stationName", "min", "mean", "max"], "properties": {"stationName": {"type": "string"}, "min": {"type": "number"}, "mean": {"type": "number"}, "max": {"type": "number"}}},
+      "Problem": {"type": "object", "required": ["title", "status", "code", "requestId"], "properties": {"title": {"type": "string"}, "status": {"type": "integer"}, "code": {"type": "string"}, "lineNumber": {"type": "integer", "format": "int64", "nullable": true}, "requestId": {"type": "string"}}},
+      "Metrics": {"type": "object", "properties": {"completedRequests": {"type": "integer", "format": "int64"}, "rejectedRequests": {"type": "integer", "format": "int64"}, "activeAggregations": {"type": "integer", "format": "int64"}, "acceptedMeasurements": {"type": "integer", "format": "int64"}, "totalRequestSeconds": {"type": "number"}, "temporaryStorageBytes": {"type": "integer", "format": "int64"}, "meter": {"type": "string"}}}
+    },
+    "responses": {
+      "InvalidInput": {"description": "invalid_measurement: invalid encoding, schema, name, or temperature.", "headers": {"X-Request-Id": {"$ref": "#/components/headers/RequestId"}}, "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}, "example": {"title": "Invalid measurement", "status": 400, "code": "invalid_measurement", "lineNumber": 3, "requestId": "example-request"}}}},
+      "Unauthorized": {"description": "unauthorized: missing, invalid, or duplicate API key.", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}},
+      "Timeout": {"description": "processing_timeout: processing deadline exceeded.", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}},
+      "Limit": {"description": "line_too_long or measurement_limit: configured limit exceeded.", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}},
+      "MediaType": {"description": "unsupported_media_type: use application/x-ndjson.", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}},
+      "StorageFailure": {"description": "storage_failure: temporary database failure.", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}},
+      "Capacity": {"description": "capacity_exceeded: all processing slots occupied.", "headers": {"Retry-After": {"schema": {"type": "integer"}, "description": "Retry delay in seconds."}}, "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}},
+      "StorageLimit": {"description": "storage_limit or storage_or_io_failure: insufficient or unavailable temporary storage.", "content": {"application/problem+json": {"schema": {"$ref": "#/components/schemas/Problem"}}}}
+    }
+  }
+}

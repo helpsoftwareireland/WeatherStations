@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+TestResults/
+.local/
+*.db
+*.db-*
+*.user
+appsettings.*.local.json
+NextGen Technical Assessment.pdf
