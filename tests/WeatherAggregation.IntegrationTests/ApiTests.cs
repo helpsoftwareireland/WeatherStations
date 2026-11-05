@@ -15,12 +15,13 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     public string Root { get; } = Path.Combine(Path.GetTempPath(), "weather-api-tests-" + Guid.NewGuid().ToString("N"));
     public string ApiKey { get; set; } = "test-key";
     public long DiskBytes { get; set; } = 30L * 1024 * 1024 * 1024;
+    public int BatchEntries { get; set; } = 2;
     public int TimeoutSeconds { get; set; } = 30;
     public long MaxMeasurements { get; set; } = 1_000_000_000;
     protected override void ConfigureWebHost(IWebHostBuilder builder) => builder
         .UseSetting("Authentication:ApiKey", ApiKey)
         .UseSetting("Aggregation:TempRoot", Root)
-        .UseSetting("Aggregation:BatchEntries", "2")
+        .UseSetting("Aggregation:BatchEntries", BatchEntries.ToString())
         .UseSetting("Aggregation:MaxConcurrentRequests", "1")
         .UseSetting("Aggregation:TimeoutSeconds", TimeoutSeconds.ToString())
         .UseSetting("Aggregation:MaxMeasurements", MaxMeasurements.ToString())
@@ -103,9 +104,11 @@ public class ApiTests
     [Fact]
     public async Task StorageExhaustionReturns507AndCleansUp()
     {
-        using var factory = new ApiFactory { DiskBytes = 1024 * 1024 };
+        const int measurements = 10_000;
+        // Hit the SQLite page limit in one transaction so the test does not depend on disk sync speed.
+        using var factory = new ApiFactory { DiskBytes = 1024 * 1024, BatchEntries = measurements };
         using var client = factory.AuthorizedClient();
-        using var response = await client.PostAsync("/measurements/aggregate", GeneratedContent.Create(10000, 10000, workload: "unique"));
+        using var response = await client.PostAsync("/measurements/aggregate", GeneratedContent.Create(measurements, measurements, workload: "unique"));
         Assert.Equal((HttpStatusCode)507, response.StatusCode);
         Assert.Contains("storage_limit", await response.Content.ReadAsStringAsync());
         Assert.Empty(Directory.GetDirectories(factory.Root));
