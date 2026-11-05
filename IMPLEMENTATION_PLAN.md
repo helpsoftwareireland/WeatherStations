@@ -12,7 +12,7 @@ Build an ASP.NET Core service that accepts a JSON Lines stream of weather measur
 
 Use .NET 10 LTS, a production-oriented design, and normal .NET commands without Docker. Target two to three working days. Reject invalid input at the first invalid line. Include disk-backed aggregation for station counts that exceed memory. Require repeatable smaller performance tests; make a billion-measurement run optional.
 
-This is production-oriented within an assessment time budget. It does not promise production capacity, availability, or a specific throughput without measurement. Local implementation and verification are complete; repository publication is deferred at the user's request.
+This is production-oriented within an assessment time budget. It does not promise production capacity, availability, or a specific throughput without measurement. Local implementation and verification are complete.
 
 ## 2. What the assignment explicitly requires
 
@@ -185,8 +185,8 @@ Final completion checklist:
 - [x] Correctness, integration, authentication, cleanup, and additional-feature checks pass: 45 unit tests and 21 integration tests.
 - [x] Repeatable performance evidence and capacity limitations are documented.
 - [x] Fresh-source restore, build, and test commands work with .NET 10; the console executable is exercised against real Kestrel.
-- [ ] Hosted GitHub build and test checks pass. Workflow implemented; execution deferred while the project stays local.
-- [ ] Source and README are published to a public GitHub repository. Deferred at the user's request.
+- Hosted build and test results are tracked in [GitHub Actions](https://github.com/helpsoftwareireland/WeatherStations/actions).
+- [x] Source and README are published to [WeatherStations](https://github.com/helpsoftwareireland/WeatherStations).
 
 Latest local validation: 4 November 2026, using isolated source copies. Restore succeeded, the latest Release build completed with zero warnings/errors, and all 66 tests passed. The one-command launcher also passed its Windows PowerShell smoke test. Additional features are documented in [EXTRA_FEATURES.md](EXTRA_FEATURES.md). Performance testing covers up to one million measurements; the optional billion-row run remains unperformed.
 

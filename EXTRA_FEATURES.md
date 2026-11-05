@@ -146,4 +146,4 @@ Build and run the test suite as described in [README.md](README.md). Added check
 
 The earlier performance results describe the pre-observability implementation and are retained as historical evidence. These additions have not been used to make a new billion-row performance claim.
 
-Verified locally on 4 November 2026: Release build with zero warnings/errors, 45 passing unit tests and 21 passing integration tests (66 total), and a successful `Start-Local.ps1 -Port 5089 -SmokeTest` run in Windows PowerShell. Validation used an isolated source copy because an existing service was running from the main checkout. Stop that instance before rebuilding or using the new launcher from the main folder. The Windows GitHub workflow now includes a launcher smoke-test step; hosted execution remains deferred while the project stays local.
+Local verification on 4 November 2026 passed all 66 tests and `Start-Local.ps1 -Port 5089 -SmokeTest` in Windows PowerShell. The Release build produced zero warnings or errors. The Windows GitHub workflow also includes a launcher smoke test. See [GitHub Actions](https://github.com/helpsoftwareireland/WeatherStations/actions).

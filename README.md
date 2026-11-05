@@ -22,7 +22,7 @@ dotnet test Broadridge.sln --configuration Release --no-build --logger trx --res
 
 The tests include a real Kestrel upload larger than 30 MB, in addition to unit and in-process integration tests. GitHub Actions runs the build and tests on Windows and Linux for pushes and pull requests. The performance runner is built but its larger workloads are not run by normal CI.
 
-Local verification on 4 November 2026: the original application and the additional features were validated in isolated source copies. The latest Release build produced zero warnings/errors, and all 66 tests passed (45 unit and 21 integration tests). The launcher also passed its Windows PowerShell smoke test. Startup cleanup covers a crash before a temporary-store lease was created; repeated disposal is safe. Hosted GitHub runs are pending while the project remains local.
+Local verification on 4 November 2026 passed all 66 tests (45 unit and 21 integration tests) and the Windows PowerShell launcher smoke test. The Release build produced zero warnings or errors. Startup cleanup covers a crash before a temporary-store lease was created, and repeated disposal is safe. See [GitHub Actions](https://github.com/helpsoftwareireland/WeatherStations/actions) for hosted build and test results.
 
 ## Run the service
 
@@ -198,6 +198,6 @@ Integer tenths avoid floating-point accumulation error. The largest supported su
 
 SQLite provides indexed disk aggregation without an external database service. Reused parameterized UPSERT commands and explicit transactions reduce per-row overhead. Memory is governed by line/buffer size, bounded batch entries, SQLite cache behavior, runtime overhead, and concurrent requests, rather than total upload size. Database work is synchronous and high-cardinality workloads can be much slower. This implementation prioritizes correctness and a reviewable design over a custom external sorting engine, parallel parsing, or peak billion-row throughput.
 
-There is no durable job queue, resumable upload, cross-request persistence, multi-key identity system, deployment infrastructure, or Docker setup. Public GitHub publication is not performed by this implementation task; the workflow is ready to run when the source is pushed to a repository.
+There is no durable job queue, resumable upload, cross-request persistence, multi-key identity system, deployment infrastructure, or Docker setup.
 
 The original analysis and assumptions are in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The tests exercise arithmetic, naming, validation, Unicode identity, bounded framing, forced disk merges, input-order independence, disk exhaustion, cleanup, authentication, capacity, timeout, a real large upload, and the console fixture.
